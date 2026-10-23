@@ -1,0 +1,11 @@
+symbol,quantity,price,average_price,sector
+INFY,30,1850.0,1520.0,Technology
+TCS,15,4120.0,3650.0,Technology
+HDFCBANK,45,1680.0,1510.0,Banking
+RELIANCE,20,2920.0,2720.0,Energy
+ITC,120,485.0,415.0,Consumer
+SUNPHARMA,25,1820.0,1560.0,Healthcare
+TATAMOTORS,35,980.0,820.0,Auto
+LT,12,3650.0,3200.0,Industrials
+ICICIBANK,40,1260.0,1080.0,Banking
+BHARTIARTL,30,1680.0,1420.0,Telecom

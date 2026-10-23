@@ -1,0 +1,15 @@
+[project]
+name = "zerodha-long-term-advisor"
+version = "1.0.0"
+description = "Read-only NSE long-term portfolio research dashboard"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.0", "numpy>=1.24", "streamlit>=1.30", "plotly>=5.18", "kiteconnect>=5.0", "python-dotenv>=1.0", "requests>=2.31"]
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+[project.scripts]
+zerodha-advisor = "advisor.cli:main"
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[tool.setuptools.packages.find]
+include = ["advisor*"]
