@@ -8,7 +8,10 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 PRICES = DATA / "prices"
 PRICES.mkdir(parents=True, exist_ok=True)
-DB_PATH = ROOT / "advisor.sqlite3"
+import sys
+sys.path.insert(0, str(ROOT))
+from advisor.config import Settings
+from advisor.storage import connect
 
 # 1. Enrich data/demo_fundamentals.csv with user's actual Zerodha holdings
 existing_funds = pd.read_csv(DATA / "demo_fundamentals.csv") if (DATA / "demo_fundamentals.csv").exists() else pd.DataFrame()
@@ -100,16 +103,18 @@ for sym, (target_last, drift_1y, vol) in target_ltps.items():
 
 # 4. Update sectors in database custom_holdings table
 sector_map = {s['symbol']: s['sector'] for s in user_stocks_fundamentals}
-db = sqlite3.connect(DB_PATH)
-for sym, sec in sector_map.items():
-    db.execute("UPDATE custom_holdings SET sector = ? WHERE symbol = ?", (sec, sym))
-db.commit()
+db = connect(Settings().db)
+try:
+    for sym, sec in sector_map.items():
+        db.execute("UPDATE custom_holdings SET sector = ? WHERE symbol = ?", (sec, sym))
+    db.commit()
 
-# Verify updated holdings
-cur = db.execute("SELECT symbol, quantity, average_price, price, sector FROM custom_holdings")
-rows = cur.fetchall()
-print("\nUpdated Custom Holdings in DB:")
-for r in rows:
-    print(r)
-db.close()
+    # Verify updated holdings
+    cur = db.execute("SELECT symbol, quantity, average_price, price, sector FROM custom_holdings")
+    rows = cur.fetchall()
+    print("\nUpdated Custom Holdings in DB:")
+    for r in rows:
+        print(dict(r))
+finally:
+    db.close()
 print("\nEnrichment complete! Real Zerodha portfolio is fully populated and analyzed.")

@@ -125,12 +125,20 @@ portfolio-advisor/
 │   ├── universe.csv           # Tracked NSE symbol universe
 │   └── prices/                # Daily price history series (252+ trading bars)
 ├── scripts/
-│   └── generate_sample_data.py # Realistic market data generator
+│   ├── generate_sample_data.py # Realistic Indian stock market data generator
+│   ├── enrich_user_portfolio.py # Syncs local database holdings with fundamental universe
+│   └── login.py               # Interactive Zerodha login & portfolio sync assistant
 ├── tests/
-│   └── test_core.py       # Full unit test suite (10 tests)
-├── app.py                 # Streamlit web dashboard
-├── pyproject.toml         # Dependencies and project metadata
-└── README.md              # Project documentation
+│   ├── conftest.py            # Shared test fixtures and mock datasets
+│   └── test_core.py           # Unit test suite
+├── .github/workflows/         # GitHub Actions CI/CD workflows
+├── docs/                      # Project analysis and documentation
+├── app.py                     # Streamlit web dashboard
+├── pyproject.toml             # Dependencies and project metadata
+├── requirements.lock          # Pinned dependency lockfile
+├── CONTRIBUTING.md            # Developer contribution guidelines
+├── CHANGELOG.md               # Version and change history
+└── README.md                  # Project documentation
 ```
 
 ---

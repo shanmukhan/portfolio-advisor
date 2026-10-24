@@ -1,13 +1,42 @@
+"""Technical and multi-factor fundamental analysis engine for equity securities.
+
+Supports standard corporate and specialized Indian banking/NBFC evaluation models.
+"""
+
+from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-REQUIRED_FUNDAMENTALS = {'symbol', 'sector', 'roe', 'debt_equity', 'sales_growth', 'earnings_growth', 'pe', 'fair_pe', 'cashflow_positive'}
+REQUIRED_FUNDAMENTALS = {
+    'symbol',
+    'sector',
+    'roe',
+    'debt_equity',
+    'sales_growth',
+    'earnings_growth',
+    'pe',
+    'fair_pe',
+    'cashflow_positive',
+}
 
-def technical(prices):
+
+def technical(prices: Sequence[float]) -> Dict[str, Any]:
+    """Compute technical trend indicators and market regimes over daily close prices.
+
+    Requires at least 252 valid positive daily closing prices. Evaluates 200-day SMA,
+    50-day SMA, 6-month and 1-year returns, 52-week highs/lows, and maximum drawdown.
+
+    Args:
+        prices: Sequence of daily closing prices ordered chronologically.
+
+    Returns:
+        Dict containing indicator metrics, trend regime ('STRONG_UPTREND', 'UPTREND',
+        'DOWNTREND', 'SEVERE_BREAKDOWN'), and composite technical score (0-100).
+    """
     s = pd.Series(prices, dtype=float).dropna()
     if len(s) < 252 or (s <= 0).any():
         return {'ready': False, 'reason': 'Need at least 252 valid daily closes'}
-    
+
     last = float(s.iloc[-1])
     sma200 = float(s.tail(200).mean())
     sma50 = float(s.tail(50).mean()) if len(s) >= 50 else sma200
@@ -27,8 +56,18 @@ def technical(prices):
     else:
         regime = "DOWNTREND"
 
-    score = float(np.clip(50 + 25 * (last > sma200) + 15 * (ret126 > 0) + 10 * (drawdown > -0.20) - 20 * (drawdown < -0.35), 0, 100))
-    
+    score = float(
+        np.clip(
+            50
+            + 25 * (last > sma200)
+            + 15 * (ret126 > 0)
+            + 10 * (drawdown > -0.20)
+            - 20 * (drawdown < -0.35),
+            0,
+            100,
+        )
+    )
+
     return {
         'ready': True,
         'last': last,
@@ -40,10 +79,23 @@ def technical(prices):
         'return_1y': ret252,
         'drawdown_52w': drawdown,
         'regime': regime,
-        'score': score
+        'score': score,
     }
 
-def fundamentals(row):
+
+def fundamentals(row: Optional[pd.Series]) -> Dict[str, Any]:
+    """Evaluate fundamental quality, growth, valuation, and balance sheet health.
+
+    Supports dedicated banking leverage models for Banking/NBFC sectors, and standard
+    debt penalty models for non-financial corporations. Detects thesis breaks and bubbles.
+
+    Args:
+        row: Pandas Series containing required fundamental metrics.
+
+    Returns:
+        Dict with readiness flag, factor subscores (quality, growth, valuation, health),
+        and thesis break / valuation bubble warnings.
+    """
     if row is None or not REQUIRED_FUNDAMENTALS.issubset(set(row.index)):
         return {'ready': False, 'reason': 'Missing fundamental fields'}
     try:
@@ -62,7 +114,7 @@ def fundamentals(row):
     sector = str(row['sector']).strip()
     is_financial = sector.lower() in ('banking', 'nbfc', 'financials', 'insurance')
 
-    thesis_breaks = []
+    thesis_breaks: List[str] = []
 
     if is_financial:
         # Dedicated model for Indian Banks & NBFCs:
@@ -119,10 +171,32 @@ def fundamentals(row):
         'earnings_growth': earnings,
         'pe': pe,
         'fair_pe': fair,
-        'cashflow_positive': cash
+        'cashflow_positive': cash,
     }
 
-def assess(symbol, prices, fund_row=None):
+
+def assess(
+    symbol: str,
+    prices: Sequence[float],
+    fund_row: Optional[pd.Series] = None,
+) -> Dict[str, Any]:
+    """Generate comprehensive investment assessment and recommendation signal for a stock.
+
+    Combines technical and fundamental factor models to classify stock into signals:
+    - 'BUY_CANDIDATE': High quality compounder with attractive or fair valuation
+    - 'HOLD': Steady compounding position with thesis intact
+    - 'SELL': Thesis break, valuation bubble, severe trend breakdown, or underperformance
+    - 'REVIEW': Incomplete price history (<252 days) or missing fundamental fields
+
+    Args:
+        symbol: Stock trading symbol (e.g. 'INFY').
+        prices: Chronological sequence of historical daily closing prices.
+        fund_row: Optional Pandas Series containing fundamental ratios.
+
+    Returns:
+        Dict containing action ('BUY', 'HOLD', 'SELL', 'REVIEW'), composite score,
+        subscores, rationale, and underlying indicator readings.
+    """
     t = technical(prices)
     f = fundamentals(fund_row)
     if not t['ready'] or not f['ready']:
@@ -137,19 +211,32 @@ def assess(symbol, prices, fund_row=None):
             'reason': '; '.join(reasons) if reasons else 'Data incomplete',
             'price': t.get('last'),
             'sma200': t.get('sma200'),
-            'thesis_status': 'UNCONFIRMED'
+            'thesis_status': 'UNCONFIRMED',
         }
 
     # Standard weighting: Quality 35%, Valuation 25%, Technical 15%, Growth 15%, Neutral 10%
-    score = round(0.35 * f['quality'] + 0.25 * f['valuation'] + 0.15 * t['score'] + 0.15 * f['growth'] + 0.10 * 50, 1)
+    score = round(
+        0.35 * f['quality']
+        + 0.25 * f['valuation']
+        + 0.15 * t['score']
+        + 0.15 * f['growth']
+        + 0.10 * 50,
+        1,
+    )
 
     # 1. Fundamental Thesis Break: Declining earnings, debt distress, or ROE collapse -> Exit 100%
-    if f.get('is_thesis_break') and (f.get('debt_equity', 0) > 1.8 or f.get('earnings_growth', 0) < -10 or not f.get('cashflow_positive', True)):
+    if f.get('is_thesis_break') and (
+        f.get('debt_equity', 0) > 1.8
+        or f.get('earnings_growth', 0) < -10
+        or not f.get('cashflow_positive', True)
+    ):
         signal = 'SELL'
         action = 'SELL'
         action_label = 'Exit / Thesis Break'
         thesis_status = 'THESIS_BREAK'
-        reason = f"Thesis Break: {f.get('thesis_break_reason')}. Core long-term investment hypothesis invalidated."
+        reason = (
+            f"Thesis Break: {f.get('thesis_break_reason')}. Core long-term investment hypothesis invalidated."
+        )
 
     # 2. Valuation Euphoria Bubble: Sell / Profit Booking -> Trim
     elif f.get('is_valuation_bubble') or f['valuation'] <= 20:
@@ -157,7 +244,10 @@ def assess(symbol, prices, fund_row=None):
         action = 'SELL'
         action_label = 'Take Profit / Trim'
         thesis_status = 'VALUATION_BUBBLE'
-        reason = f"Valuation Bubble: P/E {f['pe']:.1f} is {f['pe']/f['fair_pe']:.1f}x Fair P/E ({f['fair_pe']:.1f}). Extreme multiple expansion poses severe downside risk. Take profits / trim."
+        reason = (
+            f"Valuation Bubble: P/E {f['pe']:.1f} is {f['pe']/f['fair_pe']:.1f}x Fair P/E ({f['fair_pe']:.1f}). "
+            f"Extreme multiple expansion poses severe downside risk. Take profits / trim."
+        )
 
     # 3. Severe Long-Term Trend Breakdown with Weak Fundamentals
     elif t.get('regime') == 'SEVERE_BREAKDOWN' and (score < 55 or f['quality'] < 50):
@@ -166,7 +256,10 @@ def assess(symbol, prices, fund_row=None):
         action_label = 'Cut Loss / Capital Protection'
         thesis_status = 'TREND_BREAKDOWN'
         drawdown_pct = abs(t.get('drawdown_52w', 0)) * 100
-        reason = f"Severe Breakdown: Price is {drawdown_pct:.1f}% below 52W high and below 200 SMA with weak fundamentals ({f['quality']:.0f}/100). Capital protection stop triggered."
+        reason = (
+            f"Severe Breakdown: Price is {drawdown_pct:.1f}% below 52W high and below 200 SMA with weak fundamentals "
+            f"({f['quality']:.0f}/100). Capital protection stop triggered."
+        )
 
     # 4. Low Composite Underperformer: Sell
     elif score < 50:
@@ -174,15 +267,26 @@ def assess(symbol, prices, fund_row=None):
         action = 'SELL'
         action_label = 'Reallocate / Exit'
         thesis_status = 'UNDERPERFORMER'
-        reason = f"Low Composite Score ({score:.1f}/100): Weak fundamental quality ({f['quality']:.0f}) and trend ({t['score']:.0f}). Reallocate capital to higher-conviction opportunities."
+        reason = (
+            f"Low Composite Score ({score:.1f}/100): Weak fundamental quality ({f['quality']:.0f}) and trend "
+            f"({t['score']:.0f}). Reallocate capital to higher-conviction opportunities."
+        )
 
     # 5. BUY_CANDIDATE: Strong compounder at fair or attractive price
-    elif score >= 80 or (score >= 75 and f['valuation'] >= 55 and f['quality'] >= 60 and t['last'] >= t['sma200']):
+    elif score >= 80 or (
+        score >= 75
+        and f['valuation'] >= 55
+        and f['quality'] >= 60
+        and t['last'] >= t['sma200']
+    ):
         signal = 'BUY_CANDIDATE'
         action = 'BUY'
         action_label = 'Accumulate'
         thesis_status = 'STRONG_COMPOUNDER'
-        reason = f"Quality {f['quality']:.0f}, valuation {f['valuation']:.0f}, growth {f['growth']:.0f}, trend {t['score']:.0f}; Strong long-term compounder candidate."
+        reason = (
+            f"Quality {f['quality']:.0f}, valuation {f['valuation']:.0f}, growth {f['growth']:.0f}, trend {t['score']:.0f}; "
+            f"Strong long-term compounder candidate."
+        )
 
     # 6. HOLD: Fundamentals intact, steady compounding
     else:
@@ -190,7 +294,10 @@ def assess(symbol, prices, fund_row=None):
         action = 'HOLD'
         action_label = 'Hold & Compound'
         thesis_status = 'STEADY_HOLD'
-        reason = f"Quality {f['quality']:.0f}, valuation {f['valuation']:.0f}, growth {f['growth']:.0f}, trend {t['score']:.0f}; Thesis intact, fair valuation. Hold for compounding."
+        reason = (
+            f"Quality {f['quality']:.0f}, valuation {f['valuation']:.0f}, growth {f['growth']:.0f}, trend {t['score']:.0f}; "
+            f"Thesis intact, fair valuation. Hold for compounding."
+        )
 
     return {
         'symbol': symbol,
@@ -203,7 +310,7 @@ def assess(symbol, prices, fund_row=None):
             'valuation': f['valuation'],
             'growth': f['growth'],
             'technical': t['score'],
-            'health': f.get('health', 60)
+            'health': f.get('health', 60),
         },
         'reason': reason,
         'thesis_status': thesis_status,
@@ -216,5 +323,5 @@ def assess(symbol, prices, fund_row=None):
         'return_1y': t.get('return_1y'),
         'drawdown_52w': t.get('drawdown_52w'),
         'regime': t.get('regime'),
-        'fundamentals': f
+        'fundamentals': f,
     }

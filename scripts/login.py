@@ -113,20 +113,24 @@ def fetch_and_save_holdings(kite):
             print("Notice: Your Zerodha account currently has 0 stock holdings.")
             return
 
+        # Standardized holdings parsing
+        sys.path.insert(0, str(ROOT))
+        from advisor.broker import parse_kite_holdings
+        from advisor.storage import connect, save_custom_holdings
+        from advisor.config import Settings
+
+        db_records = parse_kite_holdings(raw_holdings)
+
         records = []
-        for r in raw_holdings:
-            sym = r.get('tradingsymbol')
-            qty = float(r.get('quantity', 0))
-            if qty <= 0:
-                continue
-            avg_p = float(r.get('average_price') or r.get('last_price') or 0.0)
-            ltp = float(r.get('last_price') or avg_p)
-            pnl = float(r.get('pnl') or (ltp - avg_p) * qty)
+        for r in db_records:
+            sym = r['symbol']
+            qty = r['quantity']
+            avg_p = r['average_price']
+            ltp = r['price']
+            pnl = (ltp - avg_p) * qty
             pnl_pct = (pnl / (avg_p * qty) * 100.0) if avg_p * qty > 0 else 0.0
-            
             records.append({
                 'Symbol': sym,
-                'Exchange': r.get('exchange', 'NSE'),
                 'Quantity': qty,
                 'Avg Cost (₹)': avg_p,
                 'LTP (₹)': ltp,
@@ -143,22 +147,13 @@ def fetch_and_save_holdings(kite):
         print("="*70)
 
         # Save to database
-        from advisor.storage import connect, save_custom_holdings
-        db = connect(os.getenv("ADVISOR_DB", "advisor.sqlite3"))
-        db_records = [
-            {
-                'symbol': r['Symbol'],
-                'quantity': r['Quantity'],
-                'average_price': r['Avg Cost (₹)'],
-                'price': r['LTP (₹)'],
-                'sector': 'Unknown'
-            }
-            for r in records
-        ]
-        save_custom_holdings(db, db_records)
-        db.close()
-        print("✅ Stored actual portfolio in local database. Streamlit dashboard is now live-synced!")
-        print("Run 'streamlit run app.py' or refresh the dashboard to view your live advice!")
+        db = connect(Settings().db)
+        try:
+            save_custom_holdings(db, db_records)
+            print("✅ Stored actual portfolio in local database. Streamlit dashboard is now live-synced!")
+            print("Run 'streamlit run app.py' or refresh the dashboard to view your live advice!")
+        finally:
+            db.close()
     except Exception as e:
         print(f"❌ Error fetching holdings: {e}")
 
