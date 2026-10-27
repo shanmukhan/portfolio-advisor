@@ -51,6 +51,4 @@ tzdata==2026.5
 urllib3==2.8.0
 uvicorn==0.54.0
 websockets==17.3
-# Editable Git install with no remote (zerodha-long-term-advisor==1.0.0)
--e /Users/shanmukhan/Developer/repo/portfolio-advisor
 zope.interface==8.7

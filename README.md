@@ -1,5 +1,17 @@
 # Zerodha Long-Term Portfolio Advisor
 
+Direct browser access uses **Investing** at <https://shanmukhan.com/#investing>,
+then **Portfolio Advisor**. Sign in with existing RPi Monitor credentials. See
+[public hosting and recovery](docs/raspberry-pi.md); the service remains on loopback
+with persistent private state and the existing demo/live distinction.
+
+Raspberry Pi service deployment is provided by the sibling Agentic Trader
+[shared installer and runbook](../agentic-trader/docs/raspberry-pi.md).
+See [Pi usage](docs/raspberry-pi.md) for port 8501, SSH access, mobile monitoring,
+persistent state, private credential renewal and recovery. The service starts in
+demo mode; this deployment does not import your workstation database or credentials.
+
+
 A quantitative, multi-factor decision-support dashboard for Indian equities (NSE) engineered for **long-term wealth generation** (1–5+ year compounding horizon). It analyzes your Zerodha portfolio and provides objective **BUY**, **HOLD**, and **SELL** recommendations with transparent rationale, interactive charts, and a disciplined ₹50,000 gross monthly purchase budget framework.
 
 ---

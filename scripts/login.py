@@ -10,7 +10,7 @@ from kiteconnect import KiteConnect
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-ENV_PATH = ROOT / '.env'
+ENV_PATH = Path(os.environ.get('ADVISOR_ENV_FILE') or ROOT / '.env')
 
 def get_or_prompt(value, prompt_msg, default=''):
     if value:

@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-25 — shared-domain browser profile
+
+- Added public-profile usage for the Investing link, HTTPS base path, monitor-password
+  browser authentication, WebSocket proxy and explicit Streamlit origin/host checks.
+- Shared publishing keeps CORS/XSRF enabled, removes Basic credentials before proxying,
+  preserves existing data/config and supports configuration-only rollback. The base
+  installer retains the public drop-in and prefixed health check.
+- Infrastructure/navigation/auth checks live in rpi-setup; deployed evidence and
+  synthetic/real acceptance limits are in the shared browser runbook.
+
+## 2026-10-25 — Raspberry Pi service support
+
+- Added `ADVISOR_ENV_FILE` for persistent private credentials across root-owned code
+  releases; local project `.env` remains the default. UI and CLI renewal share it.
+- Removed the absolute workstation editable install from `requirements.lock`.
+- Shared Agentic Trader installer provisions loopback:8501, persistent SQLite/config,
+  systemd boot/restart policy and RPi Monitor allowlist/polkit integration.
+- Added real-process configuration, persisted-ledger, renewal and portability checks.
+  See [usage and deployment evidence](docs/raspberry-pi.md); simulated data is separate
+  from broker, handset and power-loss acceptance.
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

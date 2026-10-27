@@ -1,11 +1,17 @@
 """Configuration settings and environment variable bindings for Portfolio Advisor."""
 
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+def environment_file() -> Path:
+    """Use a persistent service credential file, or the local project .env."""
+    return Path(os.environ.get('ADVISOR_ENV_FILE') or Path(__file__).resolve().parent.parent / '.env')
+
+
+load_dotenv(environment_file(), override=True)
 
 
 @dataclass(frozen=True)

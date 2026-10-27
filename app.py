@@ -4,11 +4,10 @@ Modular Streamlit frontend architecture with extracted CSS, components, sidebar,
 """
 
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 import streamlit as st
 
-from advisor.config import Settings
+from advisor.config import Settings, environment_file
 from advisor.engine import run
 from advisor.storage import connect, get_custom_holdings
 from ui.components import render_header, render_kpi_cards
@@ -34,7 +33,7 @@ st.set_page_config(
 apply_styles()
 
 # 3. Environment & Configuration
-env_file = Path(__file__).resolve().parent / '.env'
+env_file = environment_file()
 if env_file.exists():
     load_dotenv(dotenv_path=env_file, override=True)
 

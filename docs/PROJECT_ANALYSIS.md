@@ -1,5 +1,26 @@
 # 📋 Portfolio Advisor — Project Analysis, Gaps & Improvements
 
+## Shared-domain access profile — 25 October 2026
+
+Public access is behind Apache on `/portfolio-advisor/`, using the existing monitor
+identity via a restricted Argon2-only snapshot and bounded external authentication.
+Streamlit base-path/WebSocket/host/origin settings are held in a systemd drop-in;
+CORS/XSRF remain enabled and databases/account behavior remain unchanged. The public
+profile's login is distinct from the local demo/live broker mode. See
+[usage and recovery](raspberry-pi.md) and shared deployment evidence.
+
+## Raspberry Pi deployment addition — 25 October 2026
+
+The service now supports a private persistent environment file via `ADVISOR_ENV_FILE`.
+Configuration, app/import UI and login helper share the override; local default stays
+project `.env`. The sibling [shared installer](../../agentic-trader/docs/raspberry-pi.md)
+keeps code immutable and SQLite/config writable only under this service's state tree,
+with loopback access and monitor controls. Portable dependency pins remove the prior
+Mac-only editable path. Separate-process tests independently inspect persisted data.
+Deployment does not upgrade existing REAL monetary storage or validate investment
+recommendations. See [service usage](raspberry-pi.md).
+
+
 > **Analyzed:** 2026-10-24 · **Scope:** Full codebase review across all modules, scripts, tests, configuration, and security
 > **Summary:** Solid single-developer MVP with a polished UI layer, but significant gaps in architecture, security, error handling, testing, and maintainability that need attention before sharing with users or scaling.
 
